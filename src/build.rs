@@ -9,6 +9,7 @@ use self::ini::Ini;
 use self::glob::glob;
 use self::tempdir::TempDir;
 use std::fs::*;
+use std::str;
 use std::path::*;
 use std::process;
 use std::os::unix::fs;
@@ -39,6 +40,33 @@ pub const BINS: [&'static str; 21] = ["bin/ct_run",
                                       "lib/erlang/lib/tools-*/bin/emem",
                                       "lib/erlang/lib/webtool-*/priv/bin/start_webtool"];
 
+fn latest_tag(repo_dir: &str) -> String {
+    let output = Command::new("git")
+        .args(&["rev-list", "--tags", "--max-count=1"])
+        .current_dir(repo_dir)
+        .output()
+        .unwrap_or_else(|e| { error!("git rev-list failed: {}", e); process::exit(1) });
+
+    if !output.status.success() {
+        error!("finding latest tag of {} failed: {}", repo_dir, String::from_utf8_lossy(&output.stderr));
+        process::exit(1);
+    }
+
+    let rev = str::from_utf8(&output.stdout).unwrap();
+    let output = Command::new("git")
+        .args(&["describe", "--tags", &rev.trim()])
+        .current_dir(repo_dir)
+        .output()
+        .unwrap_or_else(|e| { error!("git describe failed: {}", e); process::exit(1) });
+
+    if !output.status.success() {
+        error!("describing latest tag of {} failed: {}", repo_dir, String::from_utf8_lossy(&output.stderr));
+        process::exit(1);
+    }
+
+    String::from_utf8_lossy(&output.stdout).trim().to_string()
+}
+
 pub fn update_bins(bin_path: &Path, base_dir: &Path) {
     let _ = create_dir_all(base_dir.join("bin"));
     for &b in BINS.iter() {
@@ -50,21 +78,25 @@ pub fn update_bins(bin_path: &Path, base_dir: &Path) {
 }
 
 pub fn run(base_dir: PathBuf, bin_path: PathBuf, sub_m: &ArgMatches, config_file: &str, config: Ini) {
-    let vsn = sub_m.value_of("VSN").unwrap();
     let repo = sub_m.value_of("REPO").unwrap_or("default");
-    let id = sub_m.value_of("ID").unwrap_or(vsn);
 
     let repo_url = &config::lookup("repos", repo, &config).unwrap();
     let dir = &config::lookup("erls", "dir", &config).unwrap();
-
     let repo_dir = Path::new(dir).join("repos").join(repo);
     let repo_dir_str = repo_dir.to_str().unwrap();
+
+    let vsn = match sub_m.value_of("VSN").unwrap() {
+        "latest" => latest_tag(repo_dir_str),
+        vsn => vsn.to_string()
+    };
+
+    let id = sub_m.value_of("id").unwrap_or(&vsn);
 
     let install_dir = Path::new(dir).join("otps").join(id);
     let install_dir_str = install_dir.to_str().unwrap();
 
     if !install_dir.exists() {
-        build(repo_url, repo_dir_str, install_dir_str, vsn);
+        build(repo_url, repo_dir_str, install_dir_str, &vsn);
         info!("Build complete");
         update_bins(bin_path.as_path(), base_dir.as_path());
 
