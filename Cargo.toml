@@ -1,0 +1,14 @@
+[package]
+name = "erls"
+version = "0.1.0"
+authors = ["Tristan Sloughter <t@crashfast.com>"]
+
+[dependencies]
+clap = {version = "2.3.0", features = ["yaml", "color"]}
+log = "0.3.6"
+env_logger = "0.3.3"
+ansi_term = "0.7.2"
+tempdir = "0.3.4"
+tar = "0.4.5"
+glob = "*"
+rust-ini = "0.9.4"
