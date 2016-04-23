@@ -78,7 +78,7 @@ pub fn update_bins(bin_path: &Path, base_dir: &Path) {
 }
 
 pub fn run(base_dir: PathBuf, bin_path: PathBuf, sub_m: &ArgMatches, config_file: &str, config: Ini) {
-    let repo = sub_m.value_of("REPO").unwrap_or("default");
+    let repo = sub_m.value_of("repo").unwrap_or("default");
 
     let repo_url = &config::lookup("repos", repo, &config).unwrap();
     let dir = &config::lookup("erls", "dir", &config).unwrap();

@@ -48,11 +48,24 @@ pub fn erl_to_use() -> String {
     let erl_to_use = match Ini::load_from_file("erls.config") {
         Ok(cwd_config) => {
             debug!("Found ./erls.config");
-            lookup("config", "erlang", &cwd_config).unwrap().clone()
+            match lookup("config", "erlang", &cwd_config) {
+                Some(entry) => entry.clone(),
+                None => {
+                    error!("No Erlang entry found in erls.config");
+                    error!("Delete or update the config file");
+                    process::exit(1)
+                }
+            }
         },
         Err(_) => {
             debug!("No ./erls.config found, going to default");
-            lookup("erls", "default", &config).unwrap().clone()
+            match lookup("erls", "default", &config) {
+                Some(entry) => entry.clone(),
+                None => {
+                    error!("No default Erlang set. Use `erls default <id>`");
+                    process::exit(1)
+                }
+            }
         }
     };
 
