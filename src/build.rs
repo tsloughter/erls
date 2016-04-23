@@ -54,8 +54,8 @@ pub fn run(base_dir: PathBuf, bin_path: PathBuf, sub_m: &ArgMatches, config_file
     let repo = sub_m.value_of("REPO").unwrap_or("default");
     let id = sub_m.value_of("ID").unwrap_or(vsn);
 
-    let repo_url = config::lookup("repos", repo, &config);
-    let dir = config::lookup("erls", "dir", &config);
+    let repo_url = &config::lookup("repos", repo, &config).unwrap();
+    let dir = &config::lookup("erls", "dir", &config).unwrap();
 
     let repo_dir = Path::new(dir).join("repos").join(repo);
     let repo_dir_str = repo_dir.to_str().unwrap();

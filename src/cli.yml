@@ -10,13 +10,20 @@ args:
         help: Sets a custom config file
         takes_value: true
 subcommands:
-  - update_bins:
-      about: Update binary symlinks
+  - update_links:
+      about: Update binary symlinks to erls executable
   - switch:
       about: Switch Erlang versions
       args:
-        - VSN:
-            help: Sets the Erlang version to use
+        - ID:
+            help: Sets the Erlang to use by id
+            required: true
+            index: 1
+  - default:
+      about: Switch Erlang versions
+      args:
+        - ID:
+            help: Sets the default Erlang to use by id
             required: true
             index: 1
   - build:

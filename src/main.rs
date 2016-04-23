@@ -34,10 +34,22 @@ fn handle_command(bin_path: PathBuf) {
         ("build", Some(sub_m)) => {
             build::run(base_dir, bin_path, sub_m, config_file, config);
         },
-        ("update_bins", None) => {
+        ("update_links", _) => {
             build::update_bins(bin_path.as_path(), base_dir.as_path());
-        }
-        _ => {},
+        },
+        ("list", _) => {
+            config::list();
+        },
+        ("switch", Some(sub_m)) => {
+            let id = sub_m.value_of("ID").unwrap();
+            config::switch(id);
+        },
+        ("default", Some(sub_m)) => {
+            let id = sub_m.value_of("ID").unwrap();
+            config::set_default(id);
+        },
+
+        _ => { let _ = App::from_yaml(yaml).print_help(); },
     }
 }
 
@@ -65,11 +77,16 @@ fn main() {
 
     let mut args = env::args();
     let binname = args.nth(0).unwrap();
-    let bin_path = Path::new(&binname).canonicalize().unwrap();
     let f = Path::new(&binname).file_name().unwrap();
 
     if f.eq("erls") {
-        handle_command(bin_path);
+        match env::current_exe() {
+            Ok(bin_path) => {
+                debug!("current bin path: {}", bin_path.display());
+                handle_command(bin_path)
+            },
+            Err(e) => { println!("failed to get current bin path: {}", e); process::exit(1) },
+        }
     } else {
         match build::BINS.iter().find(|&&x| f.eq(Path::new(x).file_name().unwrap())) {
             Some(x) => {
