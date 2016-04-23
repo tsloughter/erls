@@ -24,6 +24,7 @@ $ erls add repo https://github.com/erlang/otp
 $ erls build latest
 ==> Building Erlang OTP-18.3.1...
 ==> Build complete
+$ erls default OTP-18.3.1
 ```
 
 ```
