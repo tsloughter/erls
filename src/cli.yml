@@ -12,6 +12,24 @@ args:
 subcommands:
   - update_links:
       about: Update binary symlinks to erls executable
+  - fetch:
+      about: Fetch latest tags for repo
+      args:
+        - repo:
+            short: r
+            long: repo
+            value_name: REPO
+            help: Which Erlang repo to fetch tags for
+            takes_value: true
+  - tags:
+      about: Fetch latest tags for repo
+      args:
+        - repo:
+            short: r
+            long: repo
+            value_name: REPO
+            help: Which Erlang repo to fetch tags for
+            takes_value: true
   - switch:
       about: Switch Erlang versions
       args:

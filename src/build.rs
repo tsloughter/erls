@@ -78,6 +78,43 @@ pub fn update_bins(bin_path: &Path, base_dir: &Path) {
     }
 }
 
+pub fn tags(sub_m: &ArgMatches, config: Ini) {
+    let repo = sub_m.value_of("repo").unwrap_or("default");
+    let dir = &config::lookup("erls", "dir", &config).unwrap();
+    let repo_dir = Path::new(dir).join("repos").join(repo);
+
+    let output = Command::new("git")
+        .args(&["tag"])
+        .current_dir(repo_dir)
+        .output()
+        .unwrap_or_else(|e| { error!("git command failed: {}", e); process::exit(1) });
+
+    if !output.status.success() {
+        error!("clone failed: {}", String::from_utf8_lossy(&output.stderr));
+        process::exit(1);
+    }
+
+    println!("{}", String::from_utf8_lossy(&output.stdout).trim().to_string());
+}
+
+
+pub fn fetch(sub_m: &ArgMatches, config: Ini) {
+    let repo = sub_m.value_of("repo").unwrap_or("default");
+    let dir = &config::lookup("erls", "dir", &config).unwrap();
+    let repo_dir = Path::new(dir).join("repos").join(repo);
+
+    let output = Command::new("git")
+        .args(&["fetch"])
+        .current_dir(repo_dir)
+        .output()
+        .unwrap_or_else(|e| { error!("git command failed: {}", e); process::exit(1) });
+
+    if !output.status.success() {
+        error!("clone failed: {}", String::from_utf8_lossy(&output.stderr));
+        process::exit(1);
+    }
+}
+
 pub fn run(base_dir: PathBuf, bin_path: PathBuf, sub_m: &ArgMatches, config_file: &str, config: Ini) {
     let repo = sub_m.value_of("repo").unwrap_or("default");
 
@@ -111,6 +148,7 @@ pub fn run(base_dir: PathBuf, bin_path: PathBuf, sub_m: &ArgMatches, config_file
         process::exit(1);
     }
 }
+
 fn run_git(args: Vec<&str>) {
     let output = Command::new("git")
         .args(&args)

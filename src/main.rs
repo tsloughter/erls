@@ -31,6 +31,12 @@ fn handle_command(bin_path: PathBuf) {
     let config = config::read_config(&config_file);
 
     match matches.subcommand() {
+        ("fetch", Some(sub_m)) => {
+            build::fetch(sub_m, config);
+        },
+        ("tags", Some(sub_m)) => {
+            build::tags(sub_m, config);
+        },
         ("build", Some(sub_m)) => {
             build::run(base_dir, bin_path, sub_m, config_file, config);
         },
