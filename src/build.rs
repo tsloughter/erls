@@ -72,7 +72,8 @@ pub fn update_bins(bin_path: &Path, base_dir: &Path) {
     for &b in BINS.iter() {
         let f = Path::new(b).file_name().unwrap();
         let link = base_dir.join("bin").join(f);
-
+        debug!("linking {} to {}", link.display(), bin_path.display());
+        let _ = remove_file(&link);
         let _ = fs::symlink(bin_path, link);
     }
 }
@@ -173,11 +174,10 @@ pub fn build(repo_url: &str, repo_dir: &str, install_dir: &str, vsn: &str) {
 
             info!("Building Erlang {}...", vsn);
             let dist_dir = Path::new(install_dir).join("dist");
-            let prefix = "--prefix=".to_string() + dist_dir.to_str().unwrap();
-            let build_steps = vec![("./otp_build", ["autoconf"]),
-                                   ("./configure", [&prefix]),
-                                   ("make", ["-j4"]),
-                                   ("make", ["install"])];
+            let build_steps: &[(_, &[_])] = &[("./otp_build", &["autoconf"]),
+                                              ("./configure", &["--prefix", dist_dir.to_str().unwrap()]),
+                                              ("make", &["-j4"]),
+                                              ("make", &["install"])];
             for &(step, args) in build_steps.iter() {
                 debug!("Running {} {}", step, args[0]);
                 let output = Command::new(step)
