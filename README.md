@@ -12,35 +12,30 @@ $ cargo build --release
 ## Install
 
 ```
-$ mkdir -p ~/.erls/bin
-$ cp ./target/release/erls ~/.erls/bin/
-$ export PATH=~/.erls/bin:$PATH
+$ mkdir -p ~/.cache/erls/bin
+$ cp ./target/release/erls ~/.cache/erls/bin/
+$ export PATH=~/.cache/erls/bin:$PATH
 ```
 
-## Build Latest Stable Erlang
+## Build Erlang
+
+First create a config file `~/.config/erls/config`:
 
 ```
-$ erls add repo https://github.com/erlang/otp
-$ erls build latest
-==> Building Erlang OTP-18.3.1...
-==> Build complete
-$ erls default OTP-18.3.1
-```
-
-```
-$ erls list
-18.3.1 -> $HOME/.erls/otps/OTP-18.3.1/dist
-```
-
-```
-$ cat ~/.erls/config
 [erls]
-default=OTP-18.3.1
-dir=$HOME/.erls
-
-[erlangs]
-OTP-18.3.1=$HOME/.erls/otps/OTP-18.3.1/dist
+dir=<your home>/.cache/erls
 
 [repos]
 default=https://github.com/erlang/otp
 ```
+
+Then fetch the default repo and build a version:
+
+```
+$ erls fetch
+==> Fetching tags from https://github.com/erlang/otp
+$ erls build OTP-21.0.4
+...
+$ erls default OTP-21.0.4
+```
+
