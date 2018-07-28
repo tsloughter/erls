@@ -67,11 +67,11 @@ fn latest_tag(repo_dir: &str) -> String {
     String::from_utf8_lossy(&output.stdout).trim().to_string()
 }
 
-pub fn update_bins(bin_path: &Path, base_dir: &Path) {
-    let _ = create_dir_all(base_dir.join("bin"));
+pub fn update_bins(bin_path: &Path, links_dir: &Path) {
+    let _ = create_dir_all(links_dir);
     for &b in BINS.iter() {
         let f = Path::new(b).file_name().unwrap();
-        let link = base_dir.join("bin").join(f);
+        let link = links_dir.join(f);
         debug!("linking {} to {}", link.display(), bin_path.display());
         let _ = remove_file(&link);
         let _ = fs::symlink(bin_path, link);
@@ -107,7 +107,7 @@ pub fn fetch(sub_m: &ArgMatches, config: Ini) {
         .args(&["fetch"])
         .current_dir(repo_dir)
         .output()
-        .unwrap_or_else(|e| { error!("git command failed: {}", e); process::exit(1) });
+        .unwrap_or_else(|e| { error!("git fetch failed: {} {}", dir, e); process::exit(1) });
 
     if !output.status.success() {
         error!("clone failed: {}", String::from_utf8_lossy(&output.stderr));
@@ -120,6 +120,7 @@ pub fn run(base_dir: PathBuf, bin_path: PathBuf, sub_m: &ArgMatches, config_file
 
     let repo_url = &config::lookup("repos", repo, &config).unwrap();
     let dir = &config::lookup("erls", "dir", &config).unwrap();
+    let links_dir = Path::new(dir).join("bin");
     let repo_dir = Path::new(dir).join("repos").join(repo);
     let repo_dir_str = repo_dir.to_str().unwrap();
 
@@ -136,7 +137,7 @@ pub fn run(base_dir: PathBuf, bin_path: PathBuf, sub_m: &ArgMatches, config_file
     if !install_dir.exists() {
         build(repo_url, repo_dir_str, install_dir_str, &vsn);
         info!("Build complete");
-        update_bins(bin_path.as_path(), base_dir.as_path());
+        update_bins(bin_path.as_path(), links_dir.as_path());
 
         // update config file with new built otp entry
         let dist = install_dir.join("dist");
@@ -219,7 +220,7 @@ pub fn build(repo_url: &str, repo_dir: &str, install_dir: &str, vsn: &str) {
             for &(step, args) in build_steps.iter() {
                 debug!("Running {} {}", step, args[0]);
                 let output = Command::new(step)
-                    .args(&args)
+                    .args(args)
                     .current_dir(dir.path())
                     .output()
                     .unwrap_or_else(|e| { error!("build failed: {}", e); process::exit(1) });

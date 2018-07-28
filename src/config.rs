@@ -9,11 +9,11 @@ use self::ini::Ini;
 
 fn home_config_file() -> String {
     let base_dir = match env::home_dir() {
-        Some(home) => home.join(".erls"),
+        Some(home) => home.join(".config"),
         None => { error!("no home directory available"); process::exit(1) },
     };
 
-    let default_config = base_dir.join("config");
+    let default_config = base_dir.join("erls").join("config");
 
     if !default_config.exists() {
         let mut conf = Ini::new();

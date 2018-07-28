@@ -23,10 +23,10 @@ fn handle_command(bin_path: PathBuf) {
     let matches = App::from_yaml(yaml).get_matches();
 
     let base_dir = match env::home_dir() {
-        Some(home) => home.join(".erls"),
+        Some(home) => home.join(".config"),
         None => { error!("no home directory available"); process::exit(1) },
     };
-    let default_config = base_dir.join("config");
+    let default_config = base_dir.join("erls").join("config");
     let config_file = matches.value_of("config").unwrap_or(default_config.to_str().unwrap());
     let config = config::read_config(&config_file);
 
@@ -41,7 +41,9 @@ fn handle_command(bin_path: PathBuf) {
             build::run(base_dir, bin_path, sub_m, config_file, config);
         },
         ("update_links", _) => {
-            build::update_bins(bin_path.as_path(), base_dir.as_path());
+            let dir = &config::lookup("erls", "dir", &config).unwrap();
+            let links_dir = Path::new(dir).join("bin");
+            build::update_bins(bin_path.as_path(), links_dir.as_path());
         },
         ("list", _) => {
             config::list();
