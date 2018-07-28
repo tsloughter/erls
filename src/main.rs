@@ -38,7 +38,7 @@ fn handle_command(bin_path: PathBuf) {
             build::tags(sub_m, config);
         },
         ("build", Some(sub_m)) => {
-            build::run(base_dir, bin_path, sub_m, config_file, config);
+            build::run(bin_path, sub_m, config_file, config);
         },
         ("update_links", _) => {
             let dir = &config::lookup("erls", "dir", &config).unwrap();

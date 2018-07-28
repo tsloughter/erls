@@ -90,7 +90,7 @@ pub fn tags(sub_m: &ArgMatches, config: Ini) {
         .unwrap_or_else(|e| { error!("git command failed: {}", e); process::exit(1) });
 
     if !output.status.success() {
-        error!("clone failed: {}", String::from_utf8_lossy(&output.stderr));
+        error!("tag failed: {}", String::from_utf8_lossy(&output.stderr));
         process::exit(1);
     }
 
@@ -100,9 +100,26 @@ pub fn tags(sub_m: &ArgMatches, config: Ini) {
 
 pub fn fetch(sub_m: &ArgMatches, config: Ini) {
     let repo = sub_m.value_of("repo").unwrap_or("default");
+    let git_repo = &config::lookup("repos", repo, &config).unwrap();
     let dir = &config::lookup("erls", "dir", &config).unwrap();
     let repo_dir = Path::new(dir).join("repos").join(repo);
 
+    if !repo_dir.exists() {
+        info!("Cloning repo {} to {}", git_repo, repo_dir.to_str().unwrap());
+        let _ = create_dir_all(&repo_dir);
+        let output = Command::new("git")            
+            .args(&["clone", git_repo, "."])
+            .current_dir(&repo_dir)
+            .output()
+            .unwrap_or_else(|e| { error!("git clone failed: {} {}", dir, e); process::exit(1) });
+
+        if !output.status.success() {
+            error!("clone failed: {}", String::from_utf8_lossy(&output.stderr));
+            process::exit(1);
+        }
+    }
+
+    info!("Fetching tags from {}", git_repo);
     let output = Command::new("git")
         .args(&["fetch"])
         .current_dir(repo_dir)
@@ -110,12 +127,12 @@ pub fn fetch(sub_m: &ArgMatches, config: Ini) {
         .unwrap_or_else(|e| { error!("git fetch failed: {} {}", dir, e); process::exit(1) });
 
     if !output.status.success() {
-        error!("clone failed: {}", String::from_utf8_lossy(&output.stderr));
+        error!("fetch failed: {}", String::from_utf8_lossy(&output.stderr));
         process::exit(1);
     }
 }
 
-pub fn run(base_dir: PathBuf, bin_path: PathBuf, sub_m: &ArgMatches, config_file: &str, config: Ini) {
+pub fn run(bin_path: PathBuf, sub_m: &ArgMatches, config_file: &str, config: Ini) {
     let repo = sub_m.value_of("repo").unwrap_or("default");
 
     let repo_url = &config::lookup("repos", repo, &config).unwrap();
