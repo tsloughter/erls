@@ -3,7 +3,7 @@ use std::env::Args;
 use std::process::Command;
 use std::os::unix::prelude::CommandExt;
 
-use config;
+use crate::config;
 
 pub fn run(bin: &str, args: Args) {
     // no -c argument available in this case

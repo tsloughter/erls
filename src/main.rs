@@ -3,8 +3,6 @@ extern crate clap;
 
 #[macro_use]
 extern crate log;
-extern crate env_logger;
-extern crate ansi_term;
 
 use std::env;
 use std::path::*;
@@ -12,7 +10,7 @@ use std::process;
 use clap::App;
 use log::{LogRecord, LogLevel, LogLevelFilter};
 use env_logger::LogBuilder;
-use ansi_term::Colour::{Red, Green, Blue};
+use console::style;
 
 mod config;
 mod build;
@@ -22,13 +20,10 @@ fn handle_command(bin_path: PathBuf) {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
 
-    let base_dir = match env::home_dir() {
-        Some(home) => home.join(".config"),
-        None => { error!("no home directory available"); process::exit(1) },
+    let (config_file, config) = match matches.value_of("config") {
+        Some(file) => (file.to_owned(), config::read_config(file.to_owned())),
+        None => config::home_config()
     };
-    let default_config = base_dir.join("erls").join("config");
-    let config_file = matches.value_of("config").unwrap_or(default_config.to_str().unwrap());
-    let config = config::read_config(&config_file);
 
     match matches.subcommand() {
         ("fetch", Some(sub_m)) => {
@@ -38,10 +33,10 @@ fn handle_command(bin_path: PathBuf) {
             build::tags(sub_m, config);
         },
         ("build", Some(sub_m)) => {
-            build::run(bin_path, sub_m, config_file, config);
+            build::run(bin_path, sub_m, &config_file, config);
         },
         ("update_links", _) => {
-            let dir = &config::lookup("erls", "dir", &config).unwrap();
+            let dir = &config::lookup_cache_dir(&config);
             let links_dir = Path::new(dir).join("bin");
             build::update_bins(bin_path.as_path(), links_dir.as_path());
         },
@@ -63,10 +58,15 @@ fn handle_command(bin_path: PathBuf) {
 
 fn setup_logging() {
     let format = |record: &LogRecord| {
-        let color = if record.level() == LogLevel::Error { Red }
-        else if record.level() == LogLevel::Info { Green }
-        else { Blue };
-        color.paint(format!("==> {}", record.args())).to_string()
+        if record.level() == LogLevel::Error {
+            style(format!("{}", record.args()).to_string()).red().to_string()
+        }
+        else if record.level() == LogLevel::Info {
+            format!("{}", record.args())
+        }
+        else {
+            style(format!("{}", record.args()).to_string()).blue().to_string()
+        }
     };
     let mut builder = LogBuilder::new();
 

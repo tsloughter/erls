@@ -1,22 +1,23 @@
-extern crate glob;
-extern crate tempdir;
-extern crate tar;
-extern crate ini;
-extern crate clap;
-
 use clap::ArgMatches;
-use self::ini::Ini;
-use self::glob::glob;
-use self::tempdir::TempDir;
+use ini::Ini;
+use glob::glob;
+use tempdir::TempDir;
 use std::fs::*;
 use std::str;
 use std::path::*;
 use std::process;
 use std::os::unix::fs;
 use std::process::Command;
-use self::tar::Archive;
+use tar::Archive;
+use std::env;
+use std::time::Instant;
+use console::{style, Emoji};
 
-use config;
+use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
+
+use crate::config;
+
+static CHECKMARK: Emoji = Emoji("✔️", "✓ ");
 
 pub const BINS: [&'static str; 21] = ["bin/ct_run",
                                       "bin/dialyzer",
@@ -80,8 +81,14 @@ pub fn update_bins(bin_path: &Path, links_dir: &Path) {
 
 pub fn tags(sub_m: &ArgMatches, config: Ini) {
     let repo = sub_m.value_of("repo").unwrap_or("default");
-    let dir = &config::lookup("erls", "dir", &config).unwrap();
+    let git_repo = &config::lookup("repos", repo, &config).unwrap();
+    let dir = &config::lookup_cache_dir(&config);
     let repo_dir = Path::new(dir).join("repos").join(repo);
+
+    if !repo_dir.exists() {
+        info!("Cloning repo {} to {}", git_repo, repo_dir.to_str().unwrap());
+        clone_repo(git_repo, repo_dir.to_owned());
+    }
 
     let output = Command::new("git")
         .args(&["tag"])
@@ -101,25 +108,25 @@ pub fn tags(sub_m: &ArgMatches, config: Ini) {
 pub fn fetch(sub_m: &ArgMatches, config: Ini) {
     let repo = sub_m.value_of("repo").unwrap_or("default");
     let git_repo = &config::lookup("repos", repo, &config).unwrap();
-    let dir = &config::lookup("erls", "dir", &config).unwrap();
+    let dir = &config::lookup_cache_dir(&config);
     let repo_dir = Path::new(dir).join("repos").join(repo);
 
-    if !repo_dir.exists() {
-        info!("Cloning repo {} to {}", git_repo, repo_dir.to_str().unwrap());
-        let _ = create_dir_all(&repo_dir);
-        let output = Command::new("git")            
-            .args(&["clone", git_repo, "."])
-            .current_dir(&repo_dir)
-            .output()
-            .unwrap_or_else(|e| { error!("git clone failed: {} {}", dir, e); process::exit(1) });
+    let started = Instant::now();
+    let spinner_style = ProgressStyle::default_spinner()
+        .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ")
+        .template("{prefix:.bold.dim} {spinner} {wide_msg}");
 
-        if !output.status.success() {
-            error!("clone failed: {}", String::from_utf8_lossy(&output.stderr));
-            process::exit(1);
-        }
+    let pb = ProgressBar::new_spinner();
+    pb.set_style(spinner_style.clone());
+    pb.enable_steady_tick(10);
+
+    if !repo_dir.exists() {
+        pb.set_message(&format!("Cloning repo {} to {}", git_repo, repo_dir.to_str().unwrap()));
+        clone_repo(git_repo, repo_dir.to_owned());
+        pb.println(format!(" {} Cloning repo {} to {:?}", CHECKMARK, git_repo, repo_dir));
     }
 
-    info!("Fetching tags from {}", git_repo);
+    pb.set_message(&format!("Fetching tags from {}", git_repo));
     let output = Command::new("git")
         .args(&["fetch"])
         .current_dir(repo_dir)
@@ -130,13 +137,39 @@ pub fn fetch(sub_m: &ArgMatches, config: Ini) {
         error!("fetch failed: {}", String::from_utf8_lossy(&output.stderr));
         process::exit(1);
     }
+
+    pb.println(format!(" {} Fetching tags from {}", CHECKMARK, git_repo));
+    pb.finish_and_clear();
+    println!("{} fetch in {}", style("Finished").green().bold(), HumanDuration(started.elapsed()));
+}
+
+fn clone_repo(git_repo: &str, repo_dir: std::path::PathBuf) {
+    let _ = create_dir_all(&repo_dir);
+    let output = Command::new("git")
+        .args(&["clone", git_repo, "."])
+        .current_dir(&repo_dir)
+        .output()
+        .unwrap_or_else(|e| { error!("git clone failed: {:?} {}", repo_dir, e); process::exit(1) });
+
+    if !output.status.success() {
+        error!("clone failed: {}", String::from_utf8_lossy(&output.stderr));
+        process::exit(1);
+    }
 }
 
 pub fn run(bin_path: PathBuf, sub_m: &ArgMatches, config_file: &str, config: Ini) {
     let repo = sub_m.value_of("repo").unwrap_or("default");
 
     let repo_url = &config::lookup("repos", repo, &config).unwrap();
-    let dir = &config::lookup("erls", "dir", &config).unwrap();
+    let dir = &config::lookup_cache_dir(&config);
+
+    let key = "ERLS_CONFIGURE_OPTIONS";
+    let empty_string = &"".to_string();
+    let configure_options = match env::var(key) {
+        Ok(options) => options.to_owned(),
+        _ => config::lookup_with_default("erls", "default_configure_options",
+                                         empty_string, &config).to_owned(),
+    };
     let links_dir = Path::new(dir).join("bin");
     let repo_dir = Path::new(dir).join("repos").join(repo);
     let repo_dir_str = repo_dir.to_str().unwrap();
@@ -152,8 +185,7 @@ pub fn run(bin_path: PathBuf, sub_m: &ArgMatches, config_file: &str, config: Ini
     let install_dir_str = install_dir.to_str().unwrap();
 
     if !install_dir.exists() {
-        build(repo_url, repo_dir_str, install_dir_str, &vsn);
-        info!("Build complete");
+        build(repo_url, repo_dir_str, install_dir_str, &vsn, &configure_options);
         update_bins(bin_path.as_path(), links_dir.as_path());
 
         // update config file with new built otp entry
@@ -217,25 +249,40 @@ fn setup_links(install_dir: &str) {
     }
 }
 
-pub fn build(repo_url: &str, repo_dir: &str, install_dir: &str, vsn: &str) {
+pub fn build(repo_url: &str, repo_dir: &str, install_dir: &str, vsn: &str, configure_options: &str) {
     if !Path::new(repo_dir).is_dir() {
         clone(repo_url, repo_dir);
     }
 
+    let started = Instant::now();
+    let spinner_style = ProgressStyle::default_spinner()
+        .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ")
+        .template("{prefix:.bold.dim} {spinner} {wide_msg}");
+
+    let pb = ProgressBar::new_spinner();
+    pb.set_style(spinner_style.clone());
+    pb.enable_steady_tick(10);
+
     match TempDir::new("erls") {
         Ok(dir) => {
+            pb.set_message(&format!("Checking out {}", vsn));
+
             checkout(dir.path(), repo_dir, vsn);
             let _ = create_dir_all(repo_dir);
             let _ = create_dir_all(install_dir);
 
-            info!("Building Erlang {}...", vsn);
+            pb.println(format!(" {} {}", CHECKMARK, format!("Checking out tag {}", vsn)));
+
             let dist_dir = Path::new(install_dir).join("dist");
             let build_steps: &[(_, &[_])] = &[("./otp_build", &["autoconf"]),
-                                              ("./configure", &["--prefix", dist_dir.to_str().unwrap()]),
+                                              ("./configure", &["--prefix", dist_dir.to_str().unwrap(),
+                                                                configure_options]),
                                               ("make", &["-j4"]),
-                                              ("make", &["install"])];
+                                              ("make", &["install"])
+            ];
             for &(step, args) in build_steps.iter() {
-                debug!("Running {} {}", step, args[0]);
+                debug!("Running {} {:?}", step, args);
+                pb.set_message(&format!("{} {}", step, args.join(" ")));
                 let output = Command::new(step)
                     .args(args)
                     .current_dir(dir.path())
@@ -244,6 +291,8 @@ pub fn build(repo_url: &str, repo_dir: &str, install_dir: &str, vsn: &str) {
 
                 debug!("stdout: {}", String::from_utf8_lossy(&output.stdout));
                 debug!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+
+                pb.println(format!(" {} {} {}", CHECKMARK, step, args.join(" ")));
             };
         },
         Err(e) => {
@@ -251,6 +300,10 @@ pub fn build(repo_url: &str, repo_dir: &str, install_dir: &str, vsn: &str) {
         }
     }
 
-    // setup links
+    pb.set_message(&format!("{}", "Setting up symlinks"));
     setup_links(install_dir);
+    pb.println(format!(" {} {}", CHECKMARK, "Setting up symlinks"));
+
+    pb.finish_and_clear();
+    println!("{} build in {}", style("Finished").green().bold(), HumanDuration(started.elapsed()));
 }

@@ -19,7 +19,7 @@ $ export PATH=~/.cache/erls/bin:$PATH
 
 ## Build Erlang
 
-First create a config file `~/.config/erls/config`:
+`erls` will create a default config under `~/.config/erls/config` if you don't create it yourself and it'll contain:
 
 ```
 [erls]
@@ -29,13 +29,25 @@ dir=<your home>/.cache/erls
 default=https://github.com/erlang/otp
 ```
 
-Then fetch the default repo and build a version:
+To list tags available to build one:
 
 ```
-$ erls fetch
-==> Fetching tags from https://github.com/erlang/otp
-$ erls build OTP-21.0.4
+$ erls tags
 ...
-$ erls default OTP-21.0.4
+$ erls build OTP-21.2
 ```
 
+## Configuring Erlang Compilation
+
+To pass options to `./configure` (like for setting where SSL is in OSX I think) you can add them in the config file:
+
+``` ini
+[erls]
+default_configure_options=--enable-lock-counter
+```
+
+Or pass through the env variable `ERLS_CONFIGURE_OPTIONS`:
+
+``` shellsession
+$ ERLS_CONFIGURE_OPTIONS=--enable-lock-counter erls build OTP-21.2
+```
