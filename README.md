@@ -54,3 +54,7 @@ Or pass through the env variable `ERLS_CONFIGURE_OPTIONS`:
 ``` shellsession
 $ ERLS_CONFIGURE_OPTIONS=--enable-lock-counter erls build OTP-21.2
 ```
+
+## Acknowledgements
+
+Inspiration for `erls` is [erln8](https://github.com/metadave/erln8) by Dave Parfitt. He no longer maintains it and I figured I could use writing my own as a way to learn Rust.
