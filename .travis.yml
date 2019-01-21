@@ -11,6 +11,8 @@ matrix:
 script:
 - cargo build --release --target $TARGET --verbose
 - cp target/$TARGET/release/erls target/$TARGET/release/erls-$TARGET
+- ls target/$TARGET/release/erls-$TARGET
+- find target
 deploy:
   provider: releases
   api_key:
