@@ -9,13 +9,13 @@ matrix:
     env: TARGET=x86_64-unknown-linux-gnu
     dist: trusty
 script:
-- cargo build --release --target $TARGET --verbose
-- cp target/$TARGET/release/erls target/$TARGET/release/erls-$TARGET
+- cargo build --release --verbose
+- cp target/release/erls target/release/erls-$TARGET
 deploy:
   provider: releases
   api_key:
     secure: fBZIip+AZ1yHEJaC1NpMKO3Ovz3Kg93vSjTVmoGGX23zfQZOzWKalSeP3ZkM+XRhkrruyOEYo4HU+XAyiF4UU9WuyGqmMqnBgZxA6XIc5f9HI8H8EH8W0La/sZZ09KCqd0PD0X+NBFJw5Td9vJUkFCh9OYfOQidhUvoLzECVLTV09XAS0bVkD67EQKYmZZo3AYJlyYj7hKkaJUkdBPf9PY31ycp/pC/rRYls0qoW1YkWYinYpRocWEMISgOkdkZNPePX5kToBdD5xrugH6Fe7xLLKQAyRziN01NAwiyWdTmTHOSbaAyJtVPf6KZ1HnG7NIMJcaHaow6FU8Fkr67M3CMY+BoFnv9CIsxb2R/BDI5vuyCHjFQA7z4oKj/AhwkgXQX1MXoKgj0SUakJkwfnybasl6kOt90kEtx4VHgKQ0WA0poI0RBbhmIWRdYQJMg8SVkDIrnlNxB7SRbPZVFzragIctF2vKWEeGloXLLBg4lsGeo1oPsUFJVCQLtksUrVb9yA564xrk/hBodL4fJ/qBLz7Sawz0alKSfOycLE+9Vw60HvsHNAlTj6tl8oStV0Bd1d96ovB+RWkuIoBICjb+3vZa8f/ac5a9O5ctJmzhh3x+ftsgNe8E3w24XaTcrqwyjb+Ztq0196wj3uuiZnOLkvWBMRaBQcZBE43pudr+k=
-  file: target/$TARGET/release/erls-$TARGET
+  file: target/release/erls-$TARGET
   on:
     repo: tsloughter/erls
     tags: true
