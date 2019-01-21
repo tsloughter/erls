@@ -11,6 +11,8 @@ $ cargo build --release
 
 ## Setup
 
+If you download a binary from the github releases you must rename it to `erls` for it to work.
+
 Because `erls` creates symlinks from commands like `erl` to the `erls` binary you must be sure the directory the symlinks are created, `~/.cache/erls/bin`, is in your `PATH`:
 
 ```

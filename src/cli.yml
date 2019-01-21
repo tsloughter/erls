@@ -1,5 +1,5 @@
 name: erls
-version: 0.0.1
+version: 0.1.0
 author: Tristan Sloughter <t@crashfast.com>
 about: Manage Erlang installs.
 args:
