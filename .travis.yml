@@ -10,7 +10,7 @@ matrix:
     dist: trusty
 script:
 - cargo build --release --verbose
-- cp target/release/erls target/release/erls-$TARGET
+- cp target/release/erls target/release/erls-$NAME
 deploy:
   provider: releases
   api_key:
