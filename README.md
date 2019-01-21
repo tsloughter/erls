@@ -9,11 +9,12 @@ Manage multiple Erlang installs with per directory configuration.
 $ cargo build --release
 ```
 
-## Install
+## Setup
+
+Because `erls` creates symlinks from commands like `erl` to the `erls` binary you must be sure the directory the symlinks are created, `~/.cache/erls/bin`, is in your `PATH`:
 
 ```
 $ mkdir -p ~/.cache/erls/bin
-$ cp ./target/release/erls ~/.cache/erls/bin/
 $ export PATH=~/.cache/erls/bin:$PATH
 ```
 
@@ -39,7 +40,7 @@ $ erls build OTP-21.2
 
 ## Configuring Erlang Compilation
 
-To pass options to `./configure` (like for setting where SSL is in OSX I think) you can add them in the config file:
+To pass options to `./configure` (like for setting where SSL ) you can add them in the config file:
 
 ``` ini
 [erls]
