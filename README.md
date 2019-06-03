@@ -3,6 +3,8 @@ ERLS
 
 Manage multiple Erlang installs with per directory configuration.
 
+![screenshot](image.png)
+
 ## Build
 
 ```
