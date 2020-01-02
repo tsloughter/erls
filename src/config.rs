@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{File, create_dir_all};
 use std::path::*;
 use std::process;
 use ini::Ini;
@@ -13,7 +13,13 @@ fn home_config_file() -> String {
         None => { error!("no home directory available"); process::exit(1) },
     };
 
-    let default_config = base_dir.join("erls").join("config");
+    let config_dir = base_dir.join("erls");
+    if !config_dir.exists() {
+        create_dir_all(&config_dir).unwrap();
+        info!("Created config dir at {:?}", config_dir.to_owned());
+    }
+
+    let default_config = config_dir.join("config");
     let default_cache = cache_dir.join("erls");
 
     if !default_config.exists() {
